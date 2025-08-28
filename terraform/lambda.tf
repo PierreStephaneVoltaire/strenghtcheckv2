@@ -1,3 +1,38 @@
+# Security Group for Lambda
+resource "aws_security_group" "lambda" {
+  name        = "${var.project_name}-lambda-sg"
+  description = "Security group for Lambda functions"
+  vpc_id      = local.vpc_id
+
+  egress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.selected.cidr_block]
+    description = "Allow connection to RDS"
+  }
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTPS outbound"
+  }
+
+  egress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTP outbound"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-lambda-sg"
+  })
+}
+
 # IAM role for Lambda function
 resource "aws_iam_role" "lambda_role" {
   name = "${var.project_name}-lambda-role"
@@ -37,42 +72,78 @@ resource "aws_iam_role_policy" "lambda_policy" {
       {
         Effect = "Allow"
         Action = [
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:GetObject"
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface",
+          "ec2:AttachNetworkInterface",
+          "ec2:DetachNetworkInterface"
         ]
-        Resource = [
-          "${aws_s3_bucket.data.arn}/*",
-        ]
+        Resource = "*"
       },
       {
         Effect = "Allow"
         Action = [
-          "s3:ListBucket"
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
         ]
-        Resource = [
-          aws_s3_bucket.data.arn,
+        Resource = aws_secretsmanager_secret.db_credentials.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "rds:DescribeDBClusters",
+          "rds:DescribeDBInstances"
         ]
+        Resource = "*"
       }
     ]
   })
 }
 
-# Lambda function for data processing
-resource "aws_lambda_function" "data_processor" {
-  filename         = "data_processor.zip"
-  function_name    = "${var.project_name}-data-processor"
+# Lambda Layer for psycopg2 and numpy
+resource "aws_lambda_layer_version" "dependencies" {
+  filename            = "lambda-layer-dependencies.zip"
+  layer_name          = "${var.project_name}-dependencies"
+  compatible_runtimes = ["python3.9"]
+  description         = "Dependencies layer for psycopg2 and numpy"
+
+  # This would be created by your CI/CD pipeline
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Lambda function for API
+resource "aws_lambda_function" "api" {
+  filename         = "api-function.zip"
+  function_name    = "${var.project_name}-api"
   role            = aws_iam_role.lambda_role.arn
   handler         = "lambda_function.lambda_handler"
   runtime         = "python3.9"
-  timeout         = 900 # 15 minutes
-  memory_size     = 2048
+  timeout         = var.lambda_timeout
+  memory_size     = var.lambda_memory_size
+
+  layers = [aws_lambda_layer_version.dependencies.arn]
+
+  vpc_config {
+    subnet_ids         = local.private_subnet_ids
+    security_group_ids = [aws_security_group.lambda.id]
+  }
 
   environment {
     variables = {
-      DATA_BUCKET = aws_s3_bucket.data.bucket
+      WRITE_DB_HOST     = aws_db_instance.main.endpoint
+      READ_DB_HOST      = length(aws_db_instance.replica) > 0 ? aws_db_instance.replica[0].endpoint : aws_db_instance.main.endpoint
+      DB_NAME           = var.db_name
+      DB_USER           = var.db_master_username
+      DB_SECRET_ARN     = aws_secretsmanager_secret.db_credentials.arn
+      ALLOWED_ORIGIN    = aws_cloudfront_distribution.main.domain_name
     }
   }
+
+  depends_on = [
+    aws_cloudwatch_log_group.lambda_logs,
+  ]
 
   tags = local.common_tags
 
@@ -80,31 +151,14 @@ resource "aws_lambda_function" "data_processor" {
   # In practice, you would build and upload this as part of your CI/CD pipeline
 }
 
-# EventBridge rule for scheduled data updates
-resource "aws_cloudwatch_event_rule" "data_update_schedule" {
-  name                = "${var.project_name}-data-update"
-  description         = "Schedule for updating powerlifting data"
-  schedule_expression = "cron(0 6 * * ? *)" # Daily at 6 AM UTC
-  tags                = local.common_tags
-}
-
-resource "aws_cloudwatch_event_target" "lambda_target" {
-  rule      = aws_cloudwatch_event_rule.data_update_schedule.name
-  target_id = "TriggerLambda"
-  arn       = aws_lambda_function.data_processor.arn
-}
-
-resource "aws_lambda_permission" "allow_eventbridge" {
-  statement_id  = "AllowExecutionFromEventBridge"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.data_processor.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.data_update_schedule.arn
-}
-
-# CloudWatch Log Group for Lambda
+# CloudWatch Log Group for API Lambda
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${aws_lambda_function.data_processor.function_name}"
-  retention_in_days = 30
+  name              = "/aws/lambda/${var.project_name}-api"
+  retention_in_days = 7
   tags              = local.common_tags
+}
+
+# Data sources for VPC info
+data "aws_vpc" "selected" {
+  id = local.vpc_id
 }

@@ -17,9 +17,11 @@ export interface FilterOptions {
   weightClass: string;
   ageDiv: string;
   tested: string;
-  country?: string;
-  federation?: string;
-  yearRange?: [number, number];
+  country: string;
+  federation: string;
+  year: string;
+  meetName: string;
+  state: string;
 }
 
 export interface PercentileData {
@@ -42,6 +44,26 @@ export interface PercentileResult {
   total: number;
 }
 
+export interface LiftStatistics {
+  mean: number;
+  median: number;
+  min: number;
+  max: number;
+  std: number;
+  percentile25: number;
+  percentile75: number;
+  percentile90: number;
+  percentile95: number;
+}
+
+export interface StatisticsResult {
+  sampleSize: number;
+  squat: LiftStatistics;
+  bench: LiftStatistics;
+  deadlift: LiftStatistics;
+  total: LiftStatistics;
+}
+
 export interface Metadata {
   countries: string[];
   federations: string[];
@@ -56,6 +78,9 @@ export interface Metadata {
     min_year: number;
     max_year: number;
   };
+  years: string[];
+  meet_names: string[];
+  states_by_country: Record<string, string[]>;
   total_records: number;
   last_updated: string;
 }

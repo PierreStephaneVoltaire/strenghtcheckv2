@@ -1,4 +1,4 @@
-import { LiftData, PercentileData, PercentileResult, FilterOptions } from '../types';
+import type { LiftData, PercentileData, PercentileResult, FilterOptions } from '../types/index.js';
 
 /**
  * Calculate percentile for a given value within a percentile array
@@ -74,9 +74,57 @@ export function calculateLiftPercentiles(
 
 /**
  * Generate a filter key for looking up percentile data
+ * "All" values are treated as wildcards and map to the most inclusive option
  */
 export function generateFilterKey(filters: FilterOptions): string {
-  return `${filters.sex}_${filters.equipment}_${filters.weightClass}_${filters.ageDiv}_${filters.tested}`;
+  // Map "All" values to the most inclusive defaults that exist in our data
+  const ageDiv = filters.ageDiv === 'All' ? 'Open' : filters.ageDiv;
+  const tested = filters.tested === 'Any' ? 'Untested' : filters.tested; // Most data is untested
+  
+  // Use the original format for compatibility with existing data structure
+  return `${filters.sex}_${filters.equipment}_${filters.weightClass}_${ageDiv}_${tested}`;
+}
+
+/**
+ * Find the best matching percentile data for given filters
+ * When exact match isn't found, tries fallbacks with more inclusive filters
+ */
+export function findBestMatchingData(filters: FilterOptions, percentileData: Record<string, any>): any {
+  // Try exact match first
+  const exactKey = generateFilterKey(filters);
+  if (percentileData[exactKey]) {
+    return percentileData[exactKey];
+  }
+
+  // If age is "All", try finding Open division data
+  if (filters.ageDiv === 'All') {
+    const openKey = generateFilterKey({ ...filters, ageDiv: 'Open' });
+    if (percentileData[openKey]) {
+      return percentileData[openKey];
+    }
+  }
+
+  // If tested is "Any", try both tested and untested
+  if (filters.tested === 'Any') {
+    const untestedKey = generateFilterKey({ ...filters, tested: 'Untested' });
+    if (percentileData[untestedKey]) {
+      return percentileData[untestedKey];
+    }
+    
+    const testedKey = generateFilterKey({ ...filters, tested: 'Tested' });
+    if (percentileData[testedKey]) {
+      return percentileData[testedKey];
+    }
+  }
+
+  // Last resort: try with the most common combination (Open + Untested)
+  const fallbackKey = generateFilterKey({ 
+    ...filters, 
+    ageDiv: 'Open', 
+    tested: 'Untested' 
+  });
+  
+  return percentileData[fallbackKey] || null;
 }
 
 /**

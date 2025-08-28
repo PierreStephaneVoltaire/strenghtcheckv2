@@ -61,11 +61,20 @@ class PowerliftingDataProcessor:
             
         logger.info("Extraction completed")
         
-        # Find the main CSV file
-        csv_files = [f for f in os.listdir(extract_dir) if f.endswith('.csv')]
+        # Find the main CSV file (may be in subdirectory)
+        csv_files = []
+        for root, dirs, files in os.walk(extract_dir):
+            for file in files:
+                if file.endswith('.csv'):
+                    csv_files.append(os.path.join(root, file))
+        
+        if not csv_files:
+            raise FileNotFoundError("No CSV files found in extracted data")
+            
+        # Find the main OpenPowerlifting CSV file
         main_csv = next((f for f in csv_files if 'openpowerlifting' in f.lower()), csv_files[0])
         
-        return os.path.join(extract_dir, main_csv)
+        return main_csv
     
     def load_and_clean_data(self, csv_path: str) -> pd.DataFrame:
         """Load and clean the raw CSV data."""
@@ -123,11 +132,25 @@ class PowerliftingDataProcessor:
         if pd.isna(age):
             return 'Open'
             
-        for div_name, (min_age, max_age) in AGE_DIVISIONS.items():
-            if min_age <= age <= max_age:
-                return div_name
-                
-        return 'Open'
+        age = float(age)  # Ensure it's a float
+        
+        # Use specific age ranges based on common powerlifting divisions
+        if age < 14:
+            return 'Youth'
+        elif 14 <= age <= 18:
+            return 'Sub-Junior'
+        elif 19 <= age <= 23:
+            return 'Junior'
+        elif 24 <= age <= 39:
+            return 'Open'
+        elif 40 <= age <= 49:
+            return 'Masters 1'
+        elif 50 <= age <= 59:
+            return 'Masters 2'
+        elif 60 <= age <= 69:
+            return 'Masters 3'
+        else:  # 70+
+            return 'Masters 4'
     
     def _get_weight_class(self, row: pd.Series) -> str:
         """Determine weight class for a given bodyweight and sex."""
@@ -216,20 +239,61 @@ class PowerliftingDataProcessor:
         """Generate metadata for filter options."""
         logger.info("Generating metadata...")
         
+        # Helper function to safely extract years
+        def extract_years(dates):
+            years = []
+            for date in dates:
+                if pd.notna(date) and isinstance(date, str) and len(date) >= 4:
+                    try:
+                        years.append(int(date[:4]))
+                    except ValueError:
+                        continue
+            return years
+        
+        # Extract years from dates
+        years = extract_years(self.data['Date']) if 'Date' in self.data.columns else []
+        
+        # Generate states by country mapping
+        states_by_country = {}
+        meets_by_country = {}
+        meets_by_state = {}
+        
+        if 'Country' in self.data.columns and 'State' in self.data.columns:
+            for country in self.data['Country'].unique():
+                if pd.notna(country):
+                    country_data = self.data[self.data['Country'] == country]
+                    country_states = country_data['State'].unique()
+                    states_by_country[country] = sorted([s for s in country_states if pd.notna(s) and s.strip() != ''])
+                    
+                    # Get meets for this country
+                    country_meets = country_data['MeetName'].unique()
+                    meets_by_country[country] = sorted([m for m in country_meets if pd.notna(m) and m.strip() != ''])[:500]  # Limit for performance
+                    
+                    # Get meets by state within this country
+                    meets_by_state[country] = {}
+                    for state in states_by_country[country]:
+                        state_meets = country_data[country_data['State'] == state]['MeetName'].unique()
+                        meets_by_state[country][state] = sorted([m for m in state_meets if pd.notna(m) and m.strip() != ''])[:100]  # Limit for performance
+        
         metadata = {
-            'countries': sorted(self.data['Country'].unique().tolist()) if 'Country' in self.data.columns else [],
-            'federations': sorted(self.data['Federation'].unique().tolist()) if 'Federation' in self.data.columns else [],
-            'equipment_types': sorted(self.data['Equipment'].unique().tolist()),
+            'countries': sorted([c for c in self.data['Country'].unique().tolist() if pd.notna(c)]) if 'Country' in self.data.columns else [],
+            'federations': sorted([f for f in self.data['Federation'].unique().tolist() if pd.notna(f) and f.strip() != '']) if 'Federation' in self.data.columns else [],
+            'equipment_types': sorted([e for e in self.data['Equipment'].unique().tolist() if pd.notna(e)]),
             'weight_classes': {
-                'M': sorted([wc for wc in self.data[self.data['Sex'] == 'M']['WeightClass'].unique()]),
-                'F': sorted([wc for wc in self.data[self.data['Sex'] == 'F']['WeightClass'].unique()])
+                'M': sorted([wc for wc in self.data[self.data['Sex'] == 'M']['WeightClass'].unique() if pd.notna(wc)]),
+                'F': sorted([wc for wc in self.data[self.data['Sex'] == 'F']['WeightClass'].unique() if pd.notna(wc)])
             },
-            'age_divisions': sorted(self.data['AgeDiv'].unique().tolist()),
-            'tested_statuses': sorted(self.data['Tested'].unique().tolist()),
+            'age_divisions': sorted([a for a in self.data['AgeDiv'].unique().tolist() if pd.notna(a)]),
+            'tested_statuses': sorted([t for t in self.data['Tested'].unique().tolist() if pd.notna(t)]),
             'date_range': {
-                'min_year': int(self.data['Date'].str[:4].min()) if 'Date' in self.data.columns else 2000,
-                'max_year': int(self.data['Date'].str[:4].max()) if 'Date' in self.data.columns else 2024
+                'min_year': min(years) if years else 2000,
+                'max_year': max(years) if years else 2024
             },
+            'years': sorted([str(y) for y in set(years)], reverse=True) if years else [],
+            'meet_names': sorted(list(set([m for m in self.data['MeetName'].unique().tolist() if pd.notna(m) and m.strip() != '']))) if 'MeetName' in self.data.columns else [],  # All meet names
+            'states_by_country': states_by_country,
+            'meets_by_country': meets_by_country,
+            'meets_by_state': meets_by_state,
             'total_records': len(self.data),
             'last_updated': pd.Timestamp.now().isoformat()
         }

@@ -5,36 +5,15 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.1"
+    }
   }
 }
 
 provider "aws" {
   region = var.aws_region
-}
-
-# Variables
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "project_name" {
-  description = "Name of the project"
-  type        = string
-  default     = "powerlifting-analytics"
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "prod"
-}
-
-variable "domain_name" {
-  description = "Custom domain name (optional)"
-  type        = string
-  default     = ""
 }
 
 # Local values
