@@ -31,13 +31,30 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
+*.json.gz
+*_data.json
+*sample*.json
+*test*.json
+*dummy*.json
+
+# Data directories
 data-processing/data/
 data-processing/json_output/
+data-processing/output/
 frontend/public/data/
+frontend/dist/data/
 
 # Database files
 powerlifting.db
 powerlifting_sample.db
+*_sample.db
+*_test.db
+
+# Large data exports
+raw_data.json
+sample_data.json
+statistics_summary.json
+openpowerlifting-*.csv
 
 # Terraform
 terraform/.terraform/
