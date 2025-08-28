@@ -13,6 +13,7 @@ build/
 .env
 .env.local
 .env.production
+.env.development
 
 # IDE
 .vscode/
@@ -24,21 +25,82 @@ build/
 .DS_Store
 Thumbs.db
 
-# Data files
+# Data files - exclude all data files and databases
 *.csv
 *.zip
+*.db
+*.sqlite
+*.sqlite3
 data-processing/data/
+data-processing/json_output/
+frontend/public/data/
+
+# Database files
+powerlifting.db
+powerlifting_sample.db
 
 # Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
+terraform/terraform.tfplan
 *.tfvars
+*.tfvars.json
+
+# Serverless
+.serverless/
+api/.serverless/
+
+# Lambda deployment packages
+*.zip
+lambda-deployment-*.zip
+data_processor.zip
+
+# AWS credentials and config
+.aws/
+aws-credentials.json
+
+# Python virtual environments
+venv/
+env/
+.venv/
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
 # Coverage
 coverage/
 .coverage
+.nyc_output
+
+# Cache directories
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# CloudFormation (deprecated in favor of Terraform)
+cloudformation.yml
+
+# Secrets and sensitive files
+secrets.yaml
+secrets.json
+*-secrets.*
+*.pem
+*.key
+!public.key
+
+# Large data files
+openpowerlifting-*.csv
+*.csv.gz
