@@ -1,0 +1,60 @@
+version: 2
+updates:
+  # Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "@me"
+    commit-message:
+      prefix: "deps(frontend)"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "vite*"
+          - "typescript"
+          - "tailwindcss"
+      production-dependencies:
+        patterns:
+          - "react*"
+          - "recharts"
+          
+  # Python API dependencies  
+  - package-ecosystem: "pip"
+    directory: "/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "@me"
+    commit-message:
+      prefix: "deps(api)"
+      
+  # Python data processing dependencies
+  - package-ecosystem: "pip"
+    directory: "/data-processing"
+    schedule:
+      interval: "weekly" 
+      day: "monday"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "@me"
+    commit-message:
+      prefix: "deps(data)"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 2
+    reviewers:
+      - "@me"
+    commit-message:
+      prefix: "deps(actions)"

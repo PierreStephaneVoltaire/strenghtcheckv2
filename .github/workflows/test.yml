@@ -1,0 +1,194 @@
+name: Test & Lint
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+      - 'api/**'
+      - 'data-processing/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'frontend/**'
+      - 'api/**'
+      - 'data-processing/**'
+
+jobs:
+  frontend:
+    name: Frontend Tests & Linting
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+    
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run TypeScript type checking
+        run: npm run build
+      
+      - name: Run ESLint
+        run: npx eslint . --ext .ts,.tsx --max-warnings 0
+        continue-on-error: false
+      
+      - name: Check for unused dependencies
+        run: |
+          npm install -g depcheck
+          depcheck --ignores="@types/*,vite,tailwindcss"
+      
+      - name: Build production bundle
+        run: npm run build
+        env:
+          NODE_ENV: production
+      
+      - name: Check bundle size
+        run: |
+          echo "Bundle size analysis:"
+          du -sh dist/
+          find dist/ -name "*.js" -exec du -h {} + | sort -hr | head -5
+
+  api:
+    name: API/Lambda Linting
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./api
+    
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 black isort mypy
+      
+      - name: Run Black (code formatting)
+        run: black --check --diff .
+      
+      - name: Run isort (import sorting)
+        run: isort --check-only --diff .
+      
+      - name: Run Flake8 (linting)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      
+      - name: Run Flake8 (style)
+        run: flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      
+      - name: Run MyPy (type checking)
+        run: mypy --ignore-missing-imports .
+        continue-on-error: true
+      
+      - name: Test import
+        run: |
+          python -c "import lambda_function; print('Lambda function imports successfully')"
+
+  data-processing:
+    name: Data Processing Scripts
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./data-processing
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 black isort
+      
+      - name: Run Black (code formatting)
+        run: black --check --diff .
+      
+      - name: Run isort (import sorting)  
+        run: isort --check-only --diff .
+      
+      - name: Run Flake8 (linting)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      
+      - name: Test imports
+        run: |
+          python -c "import data_processor; print('Data processor imports successfully')"
+          python -c "from data_processor import PowerliftingDataProcessor; print('PowerliftingDataProcessor imports successfully')"
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+        if: always()
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [frontend, api, data-processing, security]
+    if: always()
+    
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "Frontend: ${{ needs.frontend.result }}"
+          echo "API: ${{ needs.api.result }}"
+          echo "Data Processing: ${{ needs.data-processing.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          
+          if [[ "${{ needs.frontend.result }}" != "success" ]] || 
+             [[ "${{ needs.api.result }}" != "success" ]] || 
+             [[ "${{ needs.data-processing.result }}" != "success" ]]; then
+            echo "Quality gate failed - some jobs failed"
+            exit 1
+          fi
+          
+          echo "✅ Quality gate passed - all jobs successful"
