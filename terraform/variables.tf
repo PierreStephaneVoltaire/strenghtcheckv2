@@ -20,6 +20,12 @@ variable "environment" {
 variable "domain_name" {
   description = "Custom domain name (optional)"
   type        = string
+  default     = "strengthcheckv2.psvoltaire.ca"
+}
+
+variable "route53_zone_id" {
+  description = "Route53 hosted zone ID (optional - will use domain_name to lookup if not provided)"
+  type        = string
   default     = ""
 }
 
@@ -72,7 +78,7 @@ variable "enable_performance_insights" {
 variable "backup_retention_period" {
   description = "Number of days to retain backups (0 = no backups)"
   type        = number
-  default     = 0  # No backups for cost savings
+  default     = 0
 }
 
 
