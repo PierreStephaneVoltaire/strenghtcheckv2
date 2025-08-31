@@ -16,11 +16,21 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Random suffix for resource naming
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
 # Local values
 locals {
+  resource_suffix = random_id.suffix.hex
   common_tags = {
     Project     = var.project_name
     Environment = var.environment
     ManagedBy   = "terraform"
+    CostCenter  = var.cost_center
+    Owner       = var.project_name
+    Application = var.project_name
+    Billing     = "${var.project_name}-${var.environment}"
   }
 }

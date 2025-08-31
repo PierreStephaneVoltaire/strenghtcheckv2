@@ -1,6 +1,6 @@
 # API Gateway for REST API
 resource "aws_api_gateway_rest_api" "main" {
-  name        = "${var.project_name}-api"
+  name        = "${var.project_name}-api-${local.resource_suffix}"
   description = "API Gateway for powerlifting analytics"
 
   endpoint_configuration {
@@ -157,9 +157,9 @@ resource "aws_api_gateway_method_response" "metadata_get_200" {
   status_code = "200"
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = true
-    "Access-Control-Allow-Headers" = true
-    "Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = false
+    "method.response.header.Access-Control-Allow-Headers" = false
+    "method.response.header.Access-Control-Allow-Methods" = false
   }
 }
 
@@ -170,9 +170,9 @@ resource "aws_api_gateway_method_response" "percentiles_get_200" {
   status_code = "200"
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = true
-    "Access-Control-Allow-Headers" = true
-    "Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = false
+    "method.response.header.Access-Control-Allow-Headers" = false
+    "method.response.header.Access-Control-Allow-Methods" = false
   }
 }
 
@@ -183,9 +183,9 @@ resource "aws_api_gateway_method_response" "distribution_get_200" {
   status_code = "200"
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = true
-    "Access-Control-Allow-Headers" = true
-    "Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = false
+    "method.response.header.Access-Control-Allow-Headers" = false
+    "method.response.header.Access-Control-Allow-Methods" = false
   }
 }
 
@@ -197,9 +197,9 @@ resource "aws_api_gateway_method_response" "metadata_options_200" {
   status_code = "200"
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = true
-    "Access-Control-Allow-Headers" = true
-    "Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = false
+    "method.response.header.Access-Control-Allow-Headers" = false
+    "method.response.header.Access-Control-Allow-Methods" = false
   }
 }
 
@@ -210,9 +210,9 @@ resource "aws_api_gateway_method_response" "percentiles_options_200" {
   status_code = "200"
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = true
-    "Access-Control-Allow-Headers" = true
-    "Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = false
+    "method.response.header.Access-Control-Allow-Headers" = false
+    "method.response.header.Access-Control-Allow-Methods" = false
   }
 }
 
@@ -223,9 +223,9 @@ resource "aws_api_gateway_method_response" "distribution_options_200" {
   status_code = "200"
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = true
-    "Access-Control-Allow-Headers" = true
-    "Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = false
+    "method.response.header.Access-Control-Allow-Headers" = false
+    "method.response.header.Access-Control-Allow-Methods" = false
   }
 }
 
@@ -237,9 +237,9 @@ resource "aws_api_gateway_integration_response" "metadata_options_200" {
   status_code = aws_api_gateway_method_response.metadata_options_200.status_code
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = "'*'"
-    "Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
   }
 }
 
@@ -250,9 +250,9 @@ resource "aws_api_gateway_integration_response" "percentiles_options_200" {
   status_code = aws_api_gateway_method_response.percentiles_options_200.status_code
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = "'*'"
-    "Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
   }
 }
 
@@ -263,9 +263,9 @@ resource "aws_api_gateway_integration_response" "distribution_options_200" {
   status_code = aws_api_gateway_method_response.distribution_options_200.status_code
 
   response_parameters  = {
-    "Access-Control-Allow-Origin"  = "'*'"
-    "Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
   }
 }
 
@@ -281,11 +281,34 @@ resource "aws_api_gateway_deployment" "main" {
   ]
 
   rest_api_id = aws_api_gateway_rest_api.main.id
-  stage_name  = var.environment
 
   lifecycle {
     create_before_destroy = true
   }
+
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_resource.api,
+      aws_api_gateway_resource.metadata,
+      aws_api_gateway_resource.percentiles,
+      aws_api_gateway_resource.distribution,
+      aws_api_gateway_method.metadata_get,
+      aws_api_gateway_method.percentiles_get,
+      aws_api_gateway_method.distribution_get,
+      aws_api_gateway_integration.metadata_get,
+      aws_api_gateway_integration.percentiles_get,
+      aws_api_gateway_integration.distribution_get,
+    ]))
+  }
+}
+
+# API Gateway Stage
+resource "aws_api_gateway_stage" "main" {
+  deployment_id = aws_api_gateway_deployment.main.id
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  stage_name    = var.environment
+
+  tags = local.common_tags
 }
 
 # Lambda permissions for API Gateway
@@ -297,10 +320,10 @@ resource "aws_lambda_permission" "api_gateway" {
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
 }
 
-# API Gateway Custom Domain (if domain_name is provided)
+# API Gateway Custom Domain
 resource "aws_api_gateway_domain_name" "main" {
   count           = var.domain_name != "" ? 1 : 0
-  domain_name     = "api.${var.domain_name}"
+  domain_name     = "api-${local.resource_suffix}.${var.domain_name}"
   certificate_arn = aws_acm_certificate.main[0].arn
 
   endpoint_configuration {
@@ -315,6 +338,6 @@ resource "aws_api_gateway_domain_name" "main" {
 resource "aws_api_gateway_base_path_mapping" "main" {
   count       = var.domain_name != "" ? 1 : 0
   api_id      = aws_api_gateway_rest_api.main.id
-  stage_name  = aws_api_gateway_deployment.main.stage_name
+  stage_name  = aws_api_gateway_stage.main.stage_name
   domain_name = aws_api_gateway_domain_name.main[0].domain_name
 }

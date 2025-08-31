@@ -5,7 +5,7 @@ This guide covers deploying the enhanced powerlifting analytics platform with AW
 ## Architecture Overview
 
 ```
-User -> CloudFront -> API Gateway -> Lambda -> RDS Aurora (PostgreSQL)
+User -> CloudFront -> API Gateway -> Lambda -> RDS Database (PostgreSQL)
                   \-> Static Frontend (S3)
 ```
 

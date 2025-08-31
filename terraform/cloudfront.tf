@@ -1,6 +1,6 @@
 # CloudFront Origin Access Control for S3
 resource "aws_cloudfront_origin_access_control" "main" {
-  name                              = "${var.project_name}-oac"
+  name                              = "${var.project_name}-oac-${local.resource_suffix}"
   description                       = "Origin access control for S3"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
@@ -18,7 +18,7 @@ resource "aws_cloudfront_distribution" "main" {
 
   # API Gateway Origin
   origin {
-    domain_name = replace(aws_api_gateway_deployment.main.invoke_url, "https://", "")
+    domain_name = replace(aws_api_gateway_stage.main.invoke_url, "https://", "")
     origin_id   = "API-${aws_api_gateway_rest_api.main.id}"
 
     custom_origin_config {
@@ -112,7 +112,7 @@ resource "aws_cloudfront_distribution" "main" {
   ]
 }
 
-# ACM Certificate for custom domain (if provided)
+# ACM Certificate for custom domain
 resource "aws_acm_certificate" "main" {
   count                     = var.domain_name != "" ? 1 : 0
   domain_name               = var.domain_name

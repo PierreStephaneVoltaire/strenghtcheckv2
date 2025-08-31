@@ -25,19 +25,15 @@ variable "domain_name" {
 
 # Database variables
 variable "db_master_username" {
-  description = "Master username for the Aurora cluster"
+  description = "Master username for the Database cluster"
   type        = string
   default     = "powerlifting_admin"
 }
 
-variable "db_master_password" {
-  description = "Master password for the Aurora cluster"
-  type        = string
-  sensitive   = true
-  validation {
-    condition     = length(var.db_master_password) >= 8
-    error_message = "Database password must be at least 8 characters long."
-  }
+variable "password_rotation_days" {
+  description = "Number of days between password rotations"
+  type        = number
+  default     = 30
 }
 
 variable "db_name" {
@@ -46,31 +42,7 @@ variable "db_name" {
   default     = "powerlifting"
 }
 
-# Network variables
-variable "vpc_id" {
-  description = "VPC ID for resources"
-  type        = string
-  default     = ""
-}
 
-variable "private_subnet_ids" {
-  description = "Private subnet IDs for RDS"
-  type        = list(string)
-  default     = []
-}
-
-variable "public_subnet_ids" {
-  description = "Public subnet IDs for Lambda (if needed)"
-  type        = list(string)
-  default     = []
-}
-
-# Create VPC if not provided
-variable "create_vpc" {
-  description = "Whether to create a new VPC"
-  type        = bool
-  default     = true
-}
 
 # RDS configuration
 variable "db_instance_class" {
@@ -103,11 +75,6 @@ variable "backup_retention_period" {
   default     = 0  # No backups for cost savings
 }
 
-variable "create_read_replica" {
-  description = "Create a read replica for the database"
-  type        = bool
-  default     = false
-}
 
 # Lambda configuration
 variable "lambda_memory_size" {
@@ -120,4 +87,41 @@ variable "lambda_timeout" {
   description = "Timeout for Lambda function (seconds)"
   type        = number
   default     = 30
+}
+
+variable "rotation_lambda_timeout" {
+  description = "Timeout for password rotation Lambda function (seconds)"
+  type        = number
+  default     = 300
+}
+
+# Cost monitoring variables
+variable "use_fck_nat" {
+  description = "Use fck-nat EC2 instance instead of NAT Gateway for cost savings"
+  type        = bool
+  default     = true
+}
+
+variable "fck_nat_instance_type" {
+  description = "Instance type for fck-nat (t3.nano, t3.micro, t3.small)"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "cost_center" {
+  description = "Cost center for billing allocation"
+  type        = string
+  default     = "engineering"
+}
+
+variable "monthly_budget_limit" {
+  description = "Monthly budget limit in USD for cost alerts"
+  type        = number
+  default     = 50
+}
+
+variable "cost_alert_emails" {
+  description = "List of email addresses for cost alerts"
+  type        = list(string)
+  default     = []
 }

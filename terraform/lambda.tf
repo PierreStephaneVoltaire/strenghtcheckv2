@@ -1,6 +1,6 @@
 # Security Group for Lambda
 resource "aws_security_group" "lambda" {
-  name        = "${var.project_name}-lambda-sg"
+  name        = "${var.project_name}-lambda-sg-${local.resource_suffix}"
   description = "Security group for Lambda functions"
   vpc_id      = local.vpc_id
 
@@ -35,7 +35,7 @@ resource "aws_security_group" "lambda" {
 
 # IAM role for Lambda function
 resource "aws_iam_role" "lambda_role" {
-  name = "${var.project_name}-lambda-role"
+  name = "${var.project_name}-lambda-role-${local.resource_suffix}"
   tags = local.common_tags
 
   assume_role_policy = jsonencode({
@@ -54,7 +54,7 @@ resource "aws_iam_role" "lambda_role" {
 
 # IAM policy for Lambda function
 resource "aws_iam_role_policy" "lambda_policy" {
-  name = "${var.project_name}-lambda-policy"
+  name = "${var.project_name}-lambda-policy-${local.resource_suffix}"
   role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({
@@ -103,20 +103,21 @@ resource "aws_iam_role_policy" "lambda_policy" {
 # Lambda Layer for psycopg2 and numpy
 resource "aws_lambda_layer_version" "dependencies" {
   filename            = "lambda-layer-dependencies.zip"
-  layer_name          = "${var.project_name}-dependencies"
+  layer_name          = "${var.project_name}-dependencies-${local.resource_suffix}"
   compatible_runtimes = ["python3.9"]
   description         = "Dependencies layer for psycopg2 and numpy"
 
   # This would be created by your CI/CD pipeline
   lifecycle {
     create_before_destroy = true
+    ignore_changes = [filename, source_code_hash]
   }
 }
 
 # Lambda function for API
 resource "aws_lambda_function" "api" {
-  filename         = "api-function.zip"
-  function_name    = "${var.project_name}-api"
+  filename      = "api-function.zip"
+  function_name = "${var.project_name}-api-${local.resource_suffix}"
   role            = aws_iam_role.lambda_role.arn
   handler         = "lambda_function.lambda_handler"
   runtime         = "python3.9"
@@ -133,17 +134,21 @@ resource "aws_lambda_function" "api" {
   environment {
     variables = {
       WRITE_DB_HOST     = aws_db_instance.main.endpoint
-      READ_DB_HOST      = length(aws_db_instance.replica) > 0 ? aws_db_instance.replica[0].endpoint : aws_db_instance.main.endpoint
+      READ_DB_HOST      = aws_db_instance.replica.endpoint
       DB_NAME           = var.db_name
       DB_USER           = var.db_master_username
       DB_SECRET_ARN     = aws_secretsmanager_secret.db_credentials.arn
-      ALLOWED_ORIGIN    = aws_cloudfront_distribution.main.domain_name
+      ALLOWED_ORIGIN    = var.domain_name != "" ? var.domain_name : "*"
     }
   }
 
   depends_on = [
     aws_cloudwatch_log_group.lambda_logs,
   ]
+  
+  lifecycle {
+    ignore_changes = [filename, source_code_hash]
+  }
 
   tags = local.common_tags
 
@@ -153,7 +158,7 @@ resource "aws_lambda_function" "api" {
 
 # CloudWatch Log Group for API Lambda
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${var.project_name}-api"
+  name              = "/aws/lambda/${var.project_name}-api-${local.resource_suffix}"
   retention_in_days = 7
   tags              = local.common_tags
 }
