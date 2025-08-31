@@ -72,7 +72,7 @@ resource "aws_route_table_association" "public" {
   count = var.create_vpc ? 2 : 0
 
   subnet_id      = aws_subnet.public[count.index].id
-  route_table_table_id = aws_route_table.public[0].id
+  route_table_id = aws_route_table.public[0].id
 }
 
 # NAT Gateway for Private Subnets (if needed for Lambda internet access)
@@ -121,7 +121,7 @@ resource "aws_route_table_association" "private" {
   count = var.create_vpc ? 2 : 0
 
   subnet_id      = aws_subnet.private[count.index].id
-  route_table_table_id = aws_route_table.private[0].id
+  route_table_id = aws_route_table.private[0].id
 }
 
 # Data sources

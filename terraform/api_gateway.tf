@@ -156,7 +156,7 @@ resource "aws_api_gateway_method_response" "metadata_get_200" {
   http_method = aws_api_gateway_method.metadata_get.http_method
   status_code = "200"
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = true
     "Access-Control-Allow-Headers" = true
     "Access-Control-Allow-Methods" = true
@@ -169,7 +169,7 @@ resource "aws_api_gateway_method_response" "percentiles_get_200" {
   http_method = aws_api_gateway_method.percentiles_get.http_method
   status_code = "200"
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = true
     "Access-Control-Allow-Headers" = true
     "Access-Control-Allow-Methods" = true
@@ -182,7 +182,7 @@ resource "aws_api_gateway_method_response" "distribution_get_200" {
   http_method = aws_api_gateway_method.distribution_get.http_method
   status_code = "200"
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = true
     "Access-Control-Allow-Headers" = true
     "Access-Control-Allow-Methods" = true
@@ -196,7 +196,7 @@ resource "aws_api_gateway_method_response" "metadata_options_200" {
   http_method = aws_api_gateway_method.metadata_options.http_method
   status_code = "200"
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = true
     "Access-Control-Allow-Headers" = true
     "Access-Control-Allow-Methods" = true
@@ -209,7 +209,7 @@ resource "aws_api_gateway_method_response" "percentiles_options_200" {
   http_method = aws_api_gateway_method.percentiles_options.http_method
   status_code = "200"
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = true
     "Access-Control-Allow-Headers" = true
     "Access-Control-Allow-Methods" = true
@@ -222,7 +222,7 @@ resource "aws_api_gateway_method_response" "distribution_options_200" {
   http_method = aws_api_gateway_method.distribution_options.http_method
   status_code = "200"
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = true
     "Access-Control-Allow-Headers" = true
     "Access-Control-Allow-Methods" = true
@@ -236,7 +236,7 @@ resource "aws_api_gateway_integration_response" "metadata_options_200" {
   http_method = aws_api_gateway_method.metadata_options.http_method
   status_code = aws_api_gateway_method_response.metadata_options_200.status_code
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = "'*'"
     "Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "Access-Control-Allow-Methods" = "'GET,OPTIONS'"
@@ -249,7 +249,7 @@ resource "aws_api_gateway_integration_response" "percentiles_options_200" {
   http_method = aws_api_gateway_method.percentiles_options.http_method
   status_code = aws_api_gateway_method_response.percentiles_options_200.status_code
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = "'*'"
     "Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "Access-Control-Allow-Methods" = "'GET,OPTIONS'"
@@ -262,7 +262,7 @@ resource "aws_api_gateway_integration_response" "distribution_options_200" {
   http_method = aws_api_gateway_method.distribution_options.http_method
   status_code = aws_api_gateway_method_response.distribution_options_200.status_code
 
-  response_headers = {
+  response_parameters  = {
     "Access-Control-Allow-Origin"  = "'*'"
     "Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "Access-Control-Allow-Methods" = "'GET,OPTIONS'"
