@@ -24,13 +24,8 @@ resource "aws_budgets_budget" "monthly_budget" {
   time_period_start = formatdate("YYYY-MM-01_00:00", timestamp())
 
   cost_filter {
-    name   = "TagKey"
-    values = ["Project"]
-  }
-  
-  cost_filter {
-    name   = "TagValue"
-    values = [var.project_name]
+    name   = "TagKeyValue"
+    values = ["Project$${var.project_name}"]
   }
 
   notification {
@@ -134,8 +129,8 @@ resource "aws_ce_cost_category" "project_cost_category" {
     value = "Infrastructure"
     rule {
       dimension {
-        key           = "SERVICE"
-        values        = ["Amazon Elastic Compute Cloud - Compute", "Amazon Virtual Private Cloud"]
+        key           = "SERVICE_CODE"
+        values        = ["AmazonEC2", "AmazonVPC"]
         match_options = ["EQUALS"]
       }
     }
@@ -145,8 +140,8 @@ resource "aws_ce_cost_category" "project_cost_category" {
     value = "Database" 
     rule {
       dimension {
-        key           = "SERVICE"
-        values        = ["Amazon Relational Database Service"]
+        key           = "SERVICE_CODE"
+        values        = ["AmazonRDS"]
         match_options = ["EQUALS"]
       }
     }
@@ -156,8 +151,8 @@ resource "aws_ce_cost_category" "project_cost_category" {
     value = "Storage"
     rule {
       dimension {
-        key           = "SERVICE"
-        values        = ["Amazon Simple Storage Service"]
+        key           = "SERVICE_CODE"
+        values        = ["AmazonS3"]
         match_options = ["EQUALS"]
       }
     }
@@ -167,8 +162,8 @@ resource "aws_ce_cost_category" "project_cost_category" {
     value = "Compute"
     rule {
       dimension {
-        key           = "SERVICE"  
-        values        = ["AWS Lambda"]
+        key           = "SERVICE_CODE"  
+        values        = ["AWSLambda"]
         match_options = ["EQUALS"]
       }
     }

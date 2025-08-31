@@ -37,7 +37,7 @@ output "rds_endpoint" {
 
 output "rds_reader_endpoint" {
   description = "RDS PostgreSQL read replica endpoint"
-  value       = aws_db_instance.replica.endpoint
+  value       = var.backup_retention_period > 0 ? aws_db_instance.replica[0].endpoint : aws_db_instance.main.endpoint
   sensitive   = true
 }
 

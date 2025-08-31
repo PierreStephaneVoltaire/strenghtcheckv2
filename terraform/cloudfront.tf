@@ -18,7 +18,7 @@ resource "aws_cloudfront_distribution" "main" {
 
   # API Gateway Origin
   origin {
-    domain_name = replace(aws_api_gateway_stage.main.invoke_url, "https://", "")
+    domain_name = replace(replace(aws_api_gateway_stage.main.invoke_url, "https://", ""), "/prod", "")
     origin_id   = "API-${aws_api_gateway_rest_api.main.id}"
 
     custom_origin_config {
@@ -112,8 +112,9 @@ resource "aws_cloudfront_distribution" "main" {
   ]
 }
 
-# ACM Certificate for custom domain
+# ACM Certificate for custom domain (must be in us-east-1 for CloudFront)
 resource "aws_acm_certificate" "main" {
+  provider                  = aws.us_east_1
   count                     = var.domain_name != "" ? 1 : 0
   domain_name               = var.domain_name
   subject_alternative_names = ["*.${var.domain_name}"]
@@ -127,6 +128,12 @@ resource "aws_acm_certificate" "main" {
 }
 
 resource "aws_acm_certificate_validation" "main" {
-  count           = var.domain_name != "" ? 1 : 0
-  certificate_arn = aws_acm_certificate.main[0].arn
+  provider                = aws.us_east_1
+  count                   = var.domain_name != "" ? 1 : 0
+  certificate_arn         = aws_acm_certificate.main[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.acm_validation_cloudfront : record.fqdn]
+
+  timeouts {
+    create = "5m"
+  }
 }

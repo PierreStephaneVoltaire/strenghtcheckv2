@@ -320,17 +320,40 @@ resource "aws_lambda_permission" "api_gateway" {
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
 }
 
+# ACM Certificate for API Gateway (regional)
+resource "aws_acm_certificate" "api" {
+  count                     = var.domain_name != "" ? 1 : 0
+  domain_name               = "api-${local.resource_suffix}.${var.domain_name}"
+  validation_method         = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_acm_certificate_validation" "api" {
+  count                   = var.domain_name != "" ? 1 : 0
+  certificate_arn         = aws_acm_certificate.api[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.acm_validation_api : record.fqdn]
+
+  timeouts {
+    create = "5m"
+  }
+}
+
 # API Gateway Custom Domain
 resource "aws_api_gateway_domain_name" "main" {
-  count           = var.domain_name != "" ? 1 : 0
-  domain_name     = "api-${local.resource_suffix}.${var.domain_name}"
-  certificate_arn = aws_acm_certificate.main[0].arn
+  count                    = var.domain_name != "" ? 1 : 0
+  domain_name              = "api-${local.resource_suffix}.${var.domain_name}"
+  regional_certificate_arn = aws_acm_certificate.api[0].arn
 
   endpoint_configuration {
     types = ["REGIONAL"]
   }
 
-  depends_on = [aws_acm_certificate_validation.main]
+  depends_on = [aws_acm_certificate_validation.api]
 
   tags = local.common_tags
 }

@@ -134,7 +134,7 @@ resource "aws_lambda_function" "api" {
   environment {
     variables = {
       WRITE_DB_HOST     = aws_db_instance.main.endpoint
-      READ_DB_HOST      = aws_db_instance.replica.endpoint
+      READ_DB_HOST      = var.backup_retention_period > 0 ? aws_db_instance.replica[0].endpoint : aws_db_instance.main.endpoint
       DB_NAME           = var.db_name
       DB_USER           = var.db_master_username
       DB_SECRET_ARN     = aws_secretsmanager_secret.db_credentials.arn

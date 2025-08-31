@@ -172,8 +172,9 @@ resource "aws_db_instance" "main" {
   ]
 }
 
-# Read Replica for production
+# Read Replica for production - only create if backups are enabled
 resource "aws_db_instance" "replica" {
+  count = var.backup_retention_period > 0 ? 1 : 0
   
   identifier = "${var.project_name}-postgres-replica-${local.resource_suffix}"
   

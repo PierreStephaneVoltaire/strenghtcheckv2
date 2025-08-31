@@ -8,9 +8,9 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
   block_public_acls       = true
-  block_public_policy     = true
+  block_public_policy     = false
   ignore_public_acls      = true
-  restrict_public_buckets = true
+  restrict_public_buckets = false
 }
 
 resource "aws_s3_bucket_website_configuration" "frontend" {
@@ -46,6 +46,8 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
       }
     ]
   })
+  
+  depends_on = [aws_s3_bucket_public_access_block.frontend]
 }
 
 # S3 bucket for data storage
