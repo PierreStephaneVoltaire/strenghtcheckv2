@@ -16,11 +16,11 @@ resource "aws_sns_topic_subscription" "cost_alert_emails" {
 
 # Budget for cost monitoring
 resource "aws_budgets_budget" "monthly_budget" {
-  name         = "${var.project_name}-monthly-budget-${local.resource_suffix}"
-  budget_type  = "COST"
-  limit_amount = tostring(var.monthly_budget_limit)
-  limit_unit   = "USD"
-  time_unit    = "MONTHLY"
+  name              = "${var.project_name}-monthly-budget-${local.resource_suffix}"
+  budget_type       = "COST"
+  limit_amount      = tostring(var.monthly_budget_limit)
+  limit_unit        = "USD"
+  time_unit         = "MONTHLY"
   time_period_start = formatdate("YYYY-MM-01_00:00", timestamp())
 
   cost_filter {
@@ -30,20 +30,20 @@ resource "aws_budgets_budget" "monthly_budget" {
 
   notification {
     comparison_operator        = "GREATER_THAN"
-    threshold                 = 80
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "ACTUAL"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
     subscriber_email_addresses = var.cost_alert_emails
-    subscriber_sns_topic_arns   = [aws_sns_topic.cost_alerts.arn]
+    subscriber_sns_topic_arns  = [aws_sns_topic.cost_alerts.arn]
   }
 
   notification {
-    comparison_operator        = "GREATER_THAN" 
-    threshold                 = 100
-    threshold_type            = "PERCENTAGE"
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
     notification_type          = "FORECASTED"
     subscriber_email_addresses = var.cost_alert_emails
-    subscriber_sns_topic_arns   = [aws_sns_topic.cost_alerts.arn]
+    subscriber_sns_topic_arns  = [aws_sns_topic.cost_alerts.arn]
   }
 
   tags = local.common_tags
@@ -67,7 +67,7 @@ resource "aws_cloudwatch_dashboard" "cost_monitoring" {
 
         properties = {
           metrics = [
-            [ "AWS/Billing", "EstimatedCharges", "Currency", "USD" ]
+            ["AWS/Billing", "EstimatedCharges", "Currency", "USD"]
           ]
           view    = "timeSeries"
           stacked = false
@@ -85,8 +85,8 @@ resource "aws_cloudwatch_dashboard" "cost_monitoring" {
 
         properties = {
           metrics = [
-            [ "AWS/EC2", "RunningInstances" ],
-            [ "AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "powerlifting-analytics-postgres-${local.resource_suffix}" ]
+            ["AWS/EC2", "RunningInstances"],
+            ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "powerlifting-analytics-postgres-${local.resource_suffix}"]
           ]
           view    = "timeSeries"
           stacked = false
@@ -98,14 +98,14 @@ resource "aws_cloudwatch_dashboard" "cost_monitoring" {
       {
         type   = "metric"
         x      = 6
-        y      = 6  
+        y      = 6
         width  = 6
         height = 6
 
         properties = {
           metrics = [
-            [ "AWS/Lambda", "Invocations", "FunctionName", "powerlifting-analytics-api-${local.resource_suffix}" ],
-            [ "AWS/Lambda", "Duration", "FunctionName", "powerlifting-analytics-api-${local.resource_suffix}" ]
+            ["AWS/Lambda", "Invocations", "FunctionName", "powerlifting-analytics-api-${local.resource_suffix}"],
+            ["AWS/Lambda", "Duration", "FunctionName", "powerlifting-analytics-api-${local.resource_suffix}"]
           ]
           view    = "timeSeries"
           stacked = false
@@ -137,7 +137,7 @@ resource "aws_ce_cost_category" "project_cost_category" {
   }
 
   rule {
-    value = "Database" 
+    value = "Database"
     rule {
       dimension {
         key           = "SERVICE_CODE"
@@ -162,7 +162,7 @@ resource "aws_ce_cost_category" "project_cost_category" {
     value = "Compute"
     rule {
       dimension {
-        key           = "SERVICE_CODE"  
+        key           = "SERVICE_CODE"
         values        = ["AWSLambda"]
         match_options = ["EQUALS"]
       }

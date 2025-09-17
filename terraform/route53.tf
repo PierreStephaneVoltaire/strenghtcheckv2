@@ -1,7 +1,7 @@
 # Data source to get your existing Route53 hosted zone for the main domain
 data "aws_route53_zone" "main" {
-  count   = var.domain_name != "" && var.route53_zone_id == "" ? 1 : 0
-  name    = var.domain_name
+  count = var.domain_name != "" && var.route53_zone_id == "" ? 1 : 0
+  name  = var.domain_name
 }
 
 # Local value to determine zone ID
