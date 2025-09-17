@@ -122,3 +122,4 @@ secrets.json
 # Large data files
 openpowerlifting-*.csv
 *.csv.gz
+.aider*

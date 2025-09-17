@@ -128,10 +128,9 @@ resource "aws_acm_certificate" "main" {
 }
 
 resource "aws_acm_certificate_validation" "main" {
-  provider                = aws.us_east_1
-  count                   = var.domain_name != "" ? 1 : 0
-  certificate_arn         = aws_acm_certificate.main[0].arn
-  validation_record_fqdns = [for record in aws_route53_record.acm_validation_cloudfront : record.fqdn]
+  provider        = aws.us_east_1
+  count           = var.domain_name != "" ? 1 : 0
+  certificate_arn = aws_acm_certificate.main[0].arn
 
   timeouts {
     create = "5m"

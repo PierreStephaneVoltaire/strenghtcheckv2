@@ -11,41 +11,7 @@ locals {
   ) : ""
 }
 
-# DNS validation records for CloudFront certificate (us-east-1)
-resource "aws_route53_record" "acm_validation_cloudfront" {
-  for_each = var.domain_name != "" ? {
-    for dvo in aws_acm_certificate.main[0].domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
-  } : {}
-
-  allow_overwrite = true
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 60
-  type            = each.value.type
-  zone_id         = local.route53_zone_id
-}
-
-# DNS validation records for API Gateway certificate (regional)
-resource "aws_route53_record" "acm_validation_api" {
-  for_each = var.domain_name != "" ? {
-    for dvo in aws_acm_certificate.api[0].domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
-  } : {}
-
-  allow_overwrite = true
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 60
-  type            = each.value.type
-  zone_id         = local.route53_zone_id
-}
+# Certificate validation records are created where certificates are defined
 
 # A record for your subdomain pointing to CloudFront
 resource "aws_route53_record" "subdomain" {

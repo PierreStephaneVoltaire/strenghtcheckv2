@@ -334,9 +334,8 @@ resource "aws_acm_certificate" "api" {
 }
 
 resource "aws_acm_certificate_validation" "api" {
-  count                   = var.domain_name != "" ? 1 : 0
-  certificate_arn         = aws_acm_certificate.api[0].arn
-  validation_record_fqdns = [for record in aws_route53_record.acm_validation_api : record.fqdn]
+  count           = var.domain_name != "" ? 1 : 0
+  certificate_arn = aws_acm_certificate.api[0].arn
 
   timeouts {
     create = "5m"
