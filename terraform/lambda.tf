@@ -110,7 +110,7 @@ resource "aws_lambda_layer_version" "dependencies" {
   # This would be created by your CI/CD pipeline
   lifecycle {
     create_before_destroy = true
-    ignore_changes = [filename, source_code_hash]
+    ignore_changes        = [filename, source_code_hash]
   }
 }
 
@@ -118,11 +118,11 @@ resource "aws_lambda_layer_version" "dependencies" {
 resource "aws_lambda_function" "api" {
   filename      = "api-function.zip"
   function_name = "${var.project_name}-api-${local.resource_suffix}"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = "lambda_function.lambda_handler"
-  runtime         = "python3.9"
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory_size
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.9"
+  timeout       = var.lambda_timeout
+  memory_size   = var.lambda_memory_size
 
   layers = [aws_lambda_layer_version.dependencies.arn]
 
@@ -133,19 +133,19 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      WRITE_DB_HOST     = aws_db_instance.main.endpoint
-      READ_DB_HOST      = var.backup_retention_period > 0 ? aws_db_instance.replica[0].endpoint : aws_db_instance.main.endpoint
-      DB_NAME           = var.db_name
-      DB_USER           = var.db_master_username
-      DB_SECRET_ARN     = aws_secretsmanager_secret.db_credentials.arn
-      ALLOWED_ORIGIN    = var.domain_name != "" ? var.domain_name : "*"
+      WRITE_DB_HOST  = aws_db_instance.main.endpoint
+      READ_DB_HOST   = var.backup_retention_period > 0 ? aws_db_instance.replica[0].endpoint : aws_db_instance.main.endpoint
+      DB_NAME        = var.db_name
+      DB_USER        = var.db_master_username
+      DB_SECRET_ARN  = aws_secretsmanager_secret.db_credentials.arn
+      ALLOWED_ORIGIN = var.domain_name != "" ? var.domain_name : "*"
     }
   }
 
   depends_on = [
     aws_cloudwatch_log_group.lambda_logs,
   ]
-  
+
   lifecycle {
     ignore_changes = [filename, source_code_hash]
   }

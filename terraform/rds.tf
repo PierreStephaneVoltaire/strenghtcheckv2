@@ -37,8 +37,8 @@ resource "aws_db_subnet_group" "main" {
 
 # Random password for RDS master user
 resource "random_password" "db_password" {
-  length  = 32
-  special = true
+  length           = 32
+  special          = true
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
@@ -87,19 +87,19 @@ resource "aws_ssm_parameter" "db_name" {
 resource "aws_secretsmanager_secret" "db_credentials" {
   name        = "${var.project_name}-db-credentials-${local.resource_suffix}"
   description = "Database credentials for automatic rotation"
-  
+
   tags = local.common_tags
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials" {
   secret_id = aws_secretsmanager_secret.db_credentials.id
   secret_string = jsonencode({
-    username = var.db_master_username
-    password = random_password.db_password.result
-    engine   = "postgres"
-    host     = aws_db_instance.main.endpoint
-    port     = 5432
-    dbname   = var.db_name
+    username             = var.db_master_username
+    password             = random_password.db_password.result
+    engine               = "postgres"
+    host                 = aws_db_instance.main.endpoint
+    port                 = 5432
+    dbname               = var.db_name
     dbInstanceIdentifier = aws_db_instance.main.identifier
   })
 }
@@ -125,42 +125,42 @@ resource "aws_db_parameter_group" "main" {
 # RDS PostgreSQL Instance
 resource "aws_db_instance" "main" {
   identifier = "${var.project_name}-postgres-${local.resource_suffix}"
-  
+
   # Engine configuration
   engine         = "postgres"
   engine_version = "17.6"
   instance_class = var.db_instance_class
-  
+
   # Database configuration
   db_name  = var.db_name
   username = var.db_master_username
   password = random_password.db_password.result
-  
+
   # Storage configuration - optimized for cost
   allocated_storage     = var.db_allocated_storage
   max_allocated_storage = var.db_max_allocated_storage
-  storage_type         = "gp2"  # Cheaper than gp3
-  storage_encrypted    = false  # Disable encryption to reduce cost
-  
+  storage_type          = "gp2" # Cheaper than gp3
+  storage_encrypted     = false # Disable encryption to reduce cost
+
   # Network configuration
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   publicly_accessible    = false
-  
+
   # Parameter group
   parameter_group_name = aws_db_parameter_group.main.name
-  
+
   # Cost optimization settings
   backup_retention_period = var.backup_retention_period
-  backup_window          = "03:00-04:00"  # Low traffic time
-  maintenance_window     = "sun:04:00-sun:05:00"  # Low traffic time
-  skip_final_snapshot    = true
-  deletion_protection    = false
-  
+  backup_window           = "03:00-04:00"         # Low traffic time
+  maintenance_window      = "sun:04:00-sun:05:00" # Low traffic time
+  skip_final_snapshot     = true
+  deletion_protection     = false
+
   # Performance and monitoring
   performance_insights_enabled          = var.enable_performance_insights
   performance_insights_retention_period = var.enable_performance_insights ? 7 : 0
-  monitoring_interval                   = 0  # Disable enhanced monitoring for cost
+  monitoring_interval                   = 0 # Disable enhanced monitoring for cost
   enabled_cloudwatch_logs_exports       = ["postgresql"]
 
   tags = merge(local.common_tags, {
@@ -175,20 +175,20 @@ resource "aws_db_instance" "main" {
 # Read Replica for production - only create if backups are enabled
 resource "aws_db_instance" "replica" {
   count = var.backup_retention_period > 0 ? 1 : 0
-  
+
   identifier = "${var.project_name}-postgres-replica-${local.resource_suffix}"
-  
+
   # Read replica configuration
   replicate_source_db = aws_db_instance.main.identifier
   instance_class      = var.db_instance_class
-  
+
   # Network configuration  
   publicly_accessible = false
-  
+
   # Performance monitoring
-  performance_insights_enabled = false  # Keep cost low
+  performance_insights_enabled = false # Keep cost low
   monitoring_interval          = 0
-  
+
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-postgres-replica"
     Type = "Read Replica"
@@ -313,7 +313,7 @@ resource "aws_lambda_function" "db_rotation" {
   handler       = "index.lambda_handler"
   runtime       = "python3.11"
   timeout       = var.rotation_lambda_timeout
-  
+
   layers = [aws_lambda_layer_version.psycopg2_layer.arn]
 
   vpc_config {
@@ -349,7 +349,7 @@ resource "aws_lambda_permission" "allow_secretsmanager" {
 resource "aws_secretsmanager_secret_rotation" "db_rotation" {
   secret_id           = aws_secretsmanager_secret.db_credentials.id
   rotation_lambda_arn = aws_lambda_function.db_rotation.arn
-  
+
   rotation_rules {
     automatically_after_days = var.password_rotation_days
   }

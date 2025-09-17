@@ -305,7 +305,7 @@ data "aws_availability_zones" "available" {
 
 # Local values for network configuration
 locals {
-  vpc_id = aws_vpc.main.id
+  vpc_id             = aws_vpc.main.id
   private_subnet_ids = aws_subnet.private[*].id
   public_subnet_ids  = aws_subnet.public[*].id
 }
